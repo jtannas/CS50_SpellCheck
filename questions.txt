@@ -1,0 +1,119 @@
+0. What is pneumonoultramicroscopicsilicovolcanoconiosis?
+-
+It is artificially long synonym for the medical condition "silicosis".
+From oxford dictionary: "[mass noun] An invented long word said to mean a lung disease caused by inhaling very fine ash and sand dust."
+
+1. According to its man page, what does getrusage do?
+-
+It gets the recource usage of certain (chosen) processes or threads.
+It can be used to get the resource usage of it's calling process, the children of the calling process, or for the calling thread.
+The resource usage is a struct with the following definition
+           struct rusage {
+               struct timeval ru_utime; /* user CPU time used */
+               struct timeval ru_stime; /* system CPU time used */
+               long   ru_maxrss;        /* maximum resident set size */
+               long   ru_ixrss;         /* integral shared memory size */
+               long   ru_idrss;         /* integral unshared data size */
+               long   ru_isrss;         /* integral unshared stack size */
+               long   ru_minflt;        /* page reclaims (soft page faults) */
+               long   ru_majflt;        /* page faults (hard page faults) */
+               long   ru_nswap;         /* swaps */
+               long   ru_inblock;       /* block input operations */
+               long   ru_oublock;       /* block output operations */
+               long   ru_msgsnd;        /* IPC messages sent */
+               long   ru_msgrcv;        /* IPC messages received */
+               long   ru_nsignals;      /* signals received */
+               long   ru_nvcsw;         /* voluntary context switches */
+               long   ru_nivcsw;        /* involuntary context switches */
+           };
+
+2. Per that same man page, how many members are in a variable of type struct rusage?
+-
+There are 16 members within the struct rusage.
+
+3. Why do you think we pass before and after by reference (instead of by value) to calculate, even though we’re not changing their contents?
+-
+Because it is faster and consumes less memory to provide the original struct instead of creating a copy.
+
+4. Explain as precisely as possible, in a paragraph or more, how main goes about reading words from a file. In other words, convince us that you indeed understand how that function’s for loop works.
+-
+Concept
+...
+The For-Loop reads characters one-at-a-time into a buffer that is building a word to be passed to the spell checker.
+The characters are only appended if they are letters or apostrophes.
+Words that are too long are fast-forwarded past in the file.
+Words that contain digits (a.k.a. numbers) are fast-forwarded past in the file.
+If a non-letter, non-apostrophe, non-digit character is found, logically it must be punctuation. We take that as a signal that the current word is complete.
+The word is then passed to the spell checker and the buffer is reset.
+
+Concept Pseudo-Code
+...
+    Create a character array to build the current word in
+    
+    Read in characters one at a time
+        If the chararacter is a letter or apostrophe
+            Append it to the current word
+            Fast-Forward if the word is too long to be a real word & reset the word
+        Else if the character is a digit
+            Fast-Forward through strings containing numbers & reset the word
+        Else (i.e. some form of (non-apostrophe) punctuation has been reached)
+            Increment the word counter
+            Spell Check the current word (keeping performance benchmarks)
+            Reset the character array
+    Next Character
+
+
+Detailed Pseudo-Code
+...
+    Create a character array to hold the current word
+    For each character in the file before EOF
+    
+        If the character is a letter or the character is an apostrophe
+            Append the character to the current word
+            Increment the length counter of the current word
+            
+            If the length counter exceeds the maximum word length
+                Fast-forward by reading characters until either the EOF or a non-letter is reached
+                Reset the length counter for the next word
+            End If
+            
+        Else If the character is a digit
+            Fast-forward by reading characters until either the EOF or a non-alphanumeric is reached
+            Reset the length counter for the next word
+        
+        Else If the letter counter is not zero (i.e. The character is not a letter or a digit, so it's some type of punctuation)
+            Punctuation has been reached, so terminate the current word with a string termination character "/0".
+            
+            Increment the word counter
+            
+            Start the word spell check timer
+            Spell check the word
+            Stop the word spell check timer
+            Update a benchmark timer with the difference between the start and finish
+            
+            If the current word is misspelled
+                Printf the word to the user
+                Increment the "misspelled words" counter
+            End If
+            
+            Reset the word length counter (a.k.a. new word)
+        End If
+    End For
+
+5. Why do you think we used fgetc to read each word’s characters one at a time rather than use fscanf with a format string like "%s" to read whole words at a time? Put another way, what problems might arise by relying on fscanf alone?
+-
+The "%s" argument looks for strings separated by whitespace (i.e. space, tab, or newline). When dealing with natural language
+texts, this breaks down because words are separated by other characters (e.g. dashes, periods, commas, semi-colons, colons, etc...).
+This will make fscanf a poor choice for splitting up a text into words.
+
+With fgetc, we can be inclusive of all punctuation for splits, by defining everything that is not alphanumeric as a reason to split
+a word. This makes for a "fail-safe", since any unknown punctuation will be handled normally.
+
+6. Why do you think we declared the parameters for check and load as const (which means "constant")?
+-
+Const makes it so that the program cannot write to the variable. It the case of passing struct pointers to calculate.c, it makes it 
+so that the data pointed to cannot be overwritten. The compiler understands this, and can perform certain optimizations that speed 
+up the code. Since performance it actively being measured during this pset, it makes sense to lessen the impact of 'speller.c' on 
+the performance measurements.
+Generally, it is good practice to use 'const' you are receiving variables byref and don't have plans on modifying them. This helps
+to prevent accidental overwriting of important information.
